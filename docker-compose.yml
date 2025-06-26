@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  smartdoc-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ENV=development
+      - STORAGE_TYPE=local
+      - LOCAL_STORAGE_PATH=/app/data
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-}
+      - FIREBASE_SERVICE_ACCOUNT_KEY=${FIREBASE_SERVICE_ACCOUNT_KEY:-}
+      - FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET:-}
+      - OCR_SERVICE_URL=${OCR_SERVICE_URL:-}
+      - OCR_API_KEY=${OCR_API_KEY:-}
+      - AI_SERVICE_URL=${AI_SERVICE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080,http://localhost:8081
+      - LOG_LEVEL=info
+    volumes:
+      - ./data:/app/data
+      - ./openapi.yaml:/app/openapi.yaml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/swagger/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
