@@ -9,9 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"smartdoc-ai/api"
 	"smartdoc-ai/internal/auth"
 	"smartdoc-ai/internal/services"
+	
+	httpSwagger "github.com/swaggo/http-swagger"
+	_ "smartdoc-ai/docs" // This will be generated
 )
 
 // @title SmartDoc AI API
@@ -40,6 +42,7 @@ func main() {
 			port = "8080"
 		}
 		log.Printf("Starting server on port %s", port)
+		log.Printf("Swagger documentation available at: http://localhost:%s/swagger/index.html", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v", err)
 		}
@@ -64,26 +67,43 @@ func main() {
 
 func createServer() *http.Server {
 	// Create handler instance
-	handler := api.NewStrictHandler(&ServerImpl{
-		StorageService:  services.NewStorageService(),
-		OCRService:      services.NewOCRService(),
-		SummaryService:  services.NewSummaryService(),
-	}, nil)
+	storageService := services.NewStorageService()
+	ocrService, err := services.NewOCRService()
+	if err != nil {
+		log.Fatalf("Failed to create OCR service: %v", err)
+	}
+	summaryService := services.NewSummaryService()
+	
+	handler := &ServerImpl{
+		StorageService:  storageService,
+		OCRService:      ocrService,
+		SummaryService:  summaryService,
+	}
 
 	// Setup HTTP multiplexer
 	mux := http.NewServeMux()
 
-	// Register OpenAPI handlers
-	api.RegisterHandlers(mux, handler)
-
-	// Add Swagger UI static files if needed (optional)
-	// mux.Handle("/swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger-ui"))))
+	// Register routes manually
+	mux.HandleFunc("POST /docs/upload", handler.UploadDocument)
+	mux.HandleFunc("POST /docs/{docId}/ocr", handler.TriggerOCR)
+	mux.HandleFunc("POST /docs/{docId}/summary", handler.TriggerSummary)
+	mux.HandleFunc("GET /docs/history", handler.GetDocumentHistory)
+	mux.HandleFunc("GET /docs/{docId}", handler.GetDocument)
+	mux.HandleFunc("DELETE /docs/{docId}", handler.DeleteDocument)
 
 	// Add health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
+
+	// Add Swagger documentation endpoint
+	mux.HandleFunc("GET /swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+		httpSwagger.DeepLinking(true),
+		httpSwagger.DocExpansion("none"),
+		httpSwagger.DomID("swagger-ui"),
+	))
 
 	// Add authentication middleware
 	finalHandler := auth.AuthMiddleware(mux)

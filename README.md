@@ -1,398 +1,350 @@
-# SmartDoc AI - RESTful API Backend
+# SmartDoc AI Backend
 
-A contract-first RESTful API backend in Go (Golang 1.22+) for "SmartDoc AI", following OpenAPI 3 (Swagger) specification with Firebase Auth integration, document processing, OCR, and AI summarization.
+🚀 **RESTful API for document processing with OCR and AI summarization**
 
-## 🏗️ Architecture Overview
+[![CI/CD](https://github.com/your-username/back-smartia/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/your-username/back-smartia/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/your-username/back-smartia)](https://goreportcard.com/report/github.com/your-username/back-smartia)
+[![Coverage](https://codecov.io/gh/your-username/back-smartia/branch/main/graph/badge.svg)](https://codecov.io/gh/your-username/back-smartia)
 
-This project follows a **contract-first approach** where the OpenAPI specification (`openapi.yaml`) is the single source of truth for the API design. The Go server is generated from this contract using `oapi-codegen`.
+## 📋 Table of Contents
 
-### Key Features
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [API Documentation](#-api-documentation)
+- [Security](#-security)
+- [Testing](#-testing)
+- [Development](#-development)
+- [CI/CD](#-cicd)
+- [Flutter Client](#-flutter-client)
+- [Deployment](#-deployment)
+- [Contributing](#-contributing)
 
-- ✅ **Contract-First Design**: OpenAPI 3.0 specification drives the entire API
-- ✅ **Firebase Auth Integration**: Secure authentication with Firebase ID tokens
-- ✅ **Document Processing**: Upload, store, and manage documents
-- ✅ **OCR Processing**: Google Vision API or OCR.space integration
-- ✅ **AI Summarization**: OpenAI GPT or Google Gemini integration
-- ✅ **Firebase Storage**: Scalable file storage
-- ✅ **Firestore Database**: NoSQL document database
-- ✅ **CORS Support**: Cross-origin resource sharing
-- ✅ **Swagger UI**: Live API documentation
-- ✅ **Railway/Render Ready**: Easy deployment to cloud platforms
+## ✨ Features
 
-## 📋 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/docs/upload` | Upload a document (multipart) |
-| `POST` | `/docs/{docId}/ocr` | Trigger OCR processing |
-| `POST` | `/docs/{docId}/summary` | Trigger AI summary generation |
-| `GET` | `/docs/history` | List all documents for user |
-| `GET` | `/docs/{docId}` | Get document details |
-| `DELETE` | `/docs/{docId}` | Delete a document |
-| `GET` | `/swagger/` | Swagger UI documentation |
-
-All endpoints require Firebase Auth ID token in the `Authorization: Bearer <token>` header.
+- 🔐 **Firebase Authentication** - Secure token-based authentication
+- 📄 **Document Upload** - Support for multiple file formats
+- 🔍 **OCR Processing** - Text extraction from documents
+- 🤖 **AI Summarization** - Intelligent document summarization
+- 📊 **Document Management** - Full CRUD operations
+- 📱 **Flutter Client Generation** - Auto-generated API client
+- 🐳 **Docker Support** - Containerized deployment
+- 🧪 **Comprehensive Testing** - Unit tests with coverage
+- 🔒 **Security Scanning** - Vulnerability detection
+- 📚 **Swagger Documentation** - Interactive API docs
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Go 1.22+
-- Firebase project with Auth, Firestore, and Storage enabled
-- (Optional) Google Vision API, OCR.space, OpenAI, or Google Gemini API keys
+- Docker & Docker Compose
+- Node.js 18+ (for client generation)
 
-### 1. Clone and Setup
+### Using Docker (Recommended)
 
 ```bash
-git clone <repository-url>
-cd smartdoc-ai
+# Clone the repository
+git clone https://github.com/your-username/back-smartia.git
+cd back-smartia
+
+# Start the application
+docker-compose up --build
+
+# The API will be available at http://localhost:8080
+# Swagger documentation at http://localhost:8080/swagger/index.html
 ```
 
-### 2. Install Dependencies
+### Local Development
 
 ```bash
+# Install dependencies
 go mod download
-go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
-```
 
-### 3. Configure Environment
-
-Copy the environment example and configure your settings:
-
-```bash
+# Set up environment
 cp env.example .env
+# Edit .env with your configuration
+
+# Run the server
+make run-dev
 ```
 
-Edit `.env` with your Firebase and API credentials:
+## 📚 API Documentation
 
-```env
-# Firebase Configuration
-FIREBASE_PROJECT_ID=your-firebase-project-id
-FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
+### Interactive Documentation
 
-# Storage Configuration
-FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket
+Visit [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html) for interactive API documentation.
 
-# Optional: OCR Services
-OCR_SERVICE_URL=https://api.ocr.space/parse/image
-OCR_API_KEY=your-ocr-api-key
+### Authentication
 
-# Optional: AI Summary Services
-AI_SERVICE_URL=https://api.openai.com/v1/chat/completions
-AI_API_KEY=your-openai-api-key
-```
-
-### 4. Generate Go Code from OpenAPI Contract
+All API endpoints (except `/health` and `/swagger/*`) require Firebase authentication:
 
 ```bash
-oapi-codegen -config oapi-codegen.yaml openapi.yaml
+# Include your Firebase ID token in the Authorization header
+curl -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
+     http://localhost:8080/docs/history
 ```
 
-This generates the Go types, handlers, and server stubs in `api/generated.go`.
+### Development Mode
 
-### 5. Run Locally
+In development mode, you can use test tokens:
 
 ```bash
-go run cmd/server/main.go
+# Create a test token (base64 encoded JSON)
+echo '{"user_id":"test-user-123","exp":'$(($(date +%s) + 3600))'}' | base64
+
+# Use the test token
+curl -H "Authorization: Bearer eyJ1c2VyX2lkIjoidGVzdC11c2VyLTEyMyIsImV4cCI6MTYzNTY3ODkwMH0=" \
+     http://localhost:8080/docs/history
 ```
 
-The server will start on `http://localhost:8080`
+## 🔒 Security
 
-### 6. Access Swagger UI
+### Token Validation
 
-Visit `http://localhost:8080/swagger/` to see the live API documentation.
+- **Production**: Firebase ID tokens are validated against Firebase Auth
+- **Development**: Test tokens are validated locally with expiration checks
+- **Bypass**: Health check and Swagger endpoints bypass authentication
 
-## 🔧 Contract-First Development
+### Security Features
 
-### Editing the API Contract
+- ✅ Token expiration validation
+- ✅ User context isolation
+- ✅ Secure file upload validation
+- ✅ Input sanitization
+- ✅ CORS configuration
+- ✅ Rate limiting (configurable)
 
-1. **Modify `openapi.yaml`**: Add new endpoints, modify schemas, or update responses
-2. **Regenerate Go code**: Run `oapi-codegen -config oapi-codegen.yaml openapi.yaml`
-3. **Update handlers**: Modify `cmd/server/server.go` to implement new endpoints
-4. **Test**: Use Swagger UI to test your changes
+## 🧪 Testing
 
-### Example: Adding a New Endpoint
-
-1. Add to `openapi.yaml`:
-```yaml
-  /docs/{docId}/analyze:
-    post:
-      summary: Analyze document
-      operationId: analyzeDocument
-      # ... rest of specification
-```
-
-2. Regenerate code:
-```bash
-oapi-codegen -config oapi-codegen.yaml openapi.yaml
-```
-
-3. Implement in `cmd/server/server.go`:
-```go
-func (s *ServerImpl) AnalyzeDocument(ctx *gin.Context, docId string) {
-    // Your implementation here
-}
-```
-
-## 🚀 Deployment
-
-### Railway.app
-
-1. **Connect Repository**: Link your GitHub repository to Railway
-2. **Set Environment Variables**: Add all variables from `.env` in Railway dashboard
-3. **Deploy**: Railway will automatically detect Go and deploy
+### Run Tests
 
 ```bash
-# Railway CLI (optional)
-railway login
-railway link
-railway up
+# Run all tests
+make test
+
+# Run tests with coverage
+make test-coverage
+
+# Run tests in Docker
+docker-compose -f docker-compose.dev.yml --profile dev up --build
+docker-compose -f docker-compose.dev.yml exec smartdoc-api-dev go test -v ./...
 ```
 
-### Render.com
+### Test Coverage
 
-1. **Create New Web Service**: Connect your GitHub repository
-2. **Build Command**: `go build -o main cmd/server/main.go`
-3. **Start Command**: `./main`
-4. **Environment Variables**: Add all variables from `.env`
-
-### Environment Variables for Production
-
-```env
-PORT=8080
-ENV=production
-FIREBASE_PROJECT_ID=your-production-project
-FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
-FIREBASE_STORAGE_BUCKET=your-production-bucket
-CORS_ALLOWED_ORIGINS=https://your-flutter-app.web.app
-```
-
-## 🔌 Flutter Integration
-
-### Setup Firebase in Flutter
-
-1. **Add Firebase to Flutter project**:
 ```bash
-flutterfire configure
+# Generate coverage report
+make test-coverage
+
+# View coverage in browser
+open coverage.html
 ```
 
-2. **Install dependencies**:
-```yaml
-dependencies:
-  firebase_auth: ^4.15.3
-  http: ^1.1.0
+### Test Structure
+
+```
+├── internal/auth/
+│   └── firebase_test.go      # Authentication tests
+├── cmd/server/
+│   └── server_test.go        # API endpoint tests
+└── internal/services/
+    └── *_test.go             # Service layer tests
 ```
 
-### API Client Example
+## 🛠️ Development
 
-```dart
-class SmartDocAPI {
-  static const String baseUrl = 'https://your-api.railway.app';
-  
-  static Future<String?> _getAuthToken() async {
-    final user = FirebaseAuth.instance.currentUser;
-    return await user?.getIdToken();
-  }
-  
-  static Future<Map<String, dynamic>> uploadDocument(File file) async {
-    final token = await _getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-    
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$baseUrl/docs/upload'),
-    );
-    
-    request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(await http.MultipartFile.fromPath('file', file.path));
-    
-    final response = await request.send();
-    final responseData = await response.stream.bytesToString();
-    
-    return json.decode(responseData);
-  }
-  
-  static Future<Map<String, dynamic>> triggerOCR(String docId) async {
-    final token = await _getAuthToken();
-    if (token == null) throw Exception('Not authenticated');
-    
-    final response = await http.post(
-      Uri.parse('$baseUrl/docs/$docId/ocr'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-    
-    return json.decode(response.body);
-  }
-}
+### Available Commands
+
+```bash
+# Development
+make run-dev              # Run development server
+make test                 # Run tests
+make test-coverage        # Run tests with coverage
+make lint                 # Run linter
+
+# Build
+make build                # Build application
+make clean                # Clean artifacts
+
+# Docker
+make docker-build         # Build Docker image
+make docker-run           # Run Docker container
+make docker-stop          # Stop Docker container
+
+# Documentation
+make generate-swagger     # Generate Swagger docs
+make generate-client      # Generate Flutter client
+
+# CI/CD
+make ci-test              # Run CI tests
+make ci-build             # Run CI build
+make ci-deploy            # Run CI deployment
+```
+
+### Project Structure
+
+```
+├── cmd/server/           # Application entry point
+├── internal/             # Private application code
+│   ├── auth/            # Authentication logic
+│   ├── models/          # Data models
+│   ├── services/        # Business logic
+│   └── storage/         # Storage implementations
+├── docs/                # Generated Swagger docs
+├── generated/           # Generated code
+├── scripts/             # Utility scripts
+├── .github/workflows/   # CI/CD pipelines
+├── openapi.yaml         # API specification
+└── docker-compose.yml   # Docker configuration
+```
+
+## 🔄 CI/CD
+
+### GitHub Actions Pipeline
+
+The CI/CD pipeline includes:
+
+1. **Tests** - Unit tests with coverage
+2. **Security** - Vulnerability scanning with Trivy
+3. **Build** - Docker image building
+4. **Client Generation** - Flutter API client generation
+5. **Deployment** - Staging and production deployment
+
+### Pipeline Triggers
+
+- **Push to `main`** - Full pipeline with production deployment
+- **Push to `develop`** - Full pipeline with staging deployment
+- **Pull Request** - Tests and security scanning only
+
+### Environment Variables
+
+Set these in your GitHub repository secrets:
+
+```bash
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_SERVICE_ACCOUNT_KEY=your-service-account-json
+```
+
+## 📱 Flutter Client
+
+### Auto-Generated Client
+
+The CI/CD pipeline automatically generates a Flutter API client from the OpenAPI specification.
+
+### Manual Generation
+
+```bash
+# Generate Flutter client locally
+make generate-client
+
+# The client will be available in:
+# - ./generated/flutter-client/
+# - ./flutter-client.tar.gz
 ```
 
 ### Usage in Flutter
 
 ```dart
-// Upload document
-final result = await SmartDocAPI.uploadDocument(file);
-final docId = result['data']['id'];
+import 'package:smartdoc_api/api.dart';
 
-// Trigger OCR
-await SmartDocAPI.triggerOCR(docId);
-
-// Get document history
-final history = await SmartDocAPI.getDocumentHistory();
+void main() async {
+  final api = SmartDocApi();
+  
+  // Set base URL
+  api.setBasePath('https://your-api-url.com');
+  
+  // Set authentication token
+  api.setBearerAuth('your-firebase-token');
+  
+  // Upload document
+  final file = await MultipartFile.fromFile('path/to/document.pdf');
+  final response = await api.uploadDocument(file);
+  
+  print('Document uploaded: ${response.data?.id}');
+}
 ```
 
-## 🔐 Authentication
+## 🚀 Deployment
 
-### Firebase Setup
-
-1. **Create Firebase Project**: Go to [Firebase Console](https://console.firebase.google.com/)
-2. **Enable Authentication**: Add Email/Password or Google Sign-in
-3. **Enable Firestore**: Create database in test mode
-4. **Enable Storage**: Create storage bucket
-5. **Generate Service Account Key**: 
-   - Go to Project Settings > Service Accounts
-   - Click "Generate new private key"
-   - Save the JSON file
-   - Add content to `FIREBASE_SERVICE_ACCOUNT_KEY` environment variable
-
-### Token Validation
-
-The API validates Firebase ID tokens on every request:
+### Docker Deployment
 
 ```bash
-curl -X POST http://localhost:8080/docs/upload \
-  -H "Authorization: Bearer YOUR_FIREBASE_ID_TOKEN" \
-  -F "file=@document.pdf"
+# Build and run
+docker-compose up --build -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
 ```
 
-## 🧪 Testing
-
-### Using Swagger UI
-
-1. Start the server: `go run cmd/server/main.go`
-2. Visit: `http://localhost:8080/swagger/`
-3. Click "Authorize" and enter your Firebase ID token
-4. Test endpoints directly from the UI
-
-### Using curl
+### Environment Configuration
 
 ```bash
-# Get Firebase ID token (from your Flutter app or Firebase console)
-TOKEN="your-firebase-id-token"
+# Copy example environment
+cp env.example .env
 
-# Upload document
-curl -X POST http://localhost:8080/docs/upload \
-  -H "Authorization: Bearer $TOKEN" \
-  -F "file=@test-document.pdf"
-
-# Trigger OCR
-curl -X POST http://localhost:8080/docs/DOC_ID/ocr \
-  -H "Authorization: Bearer $TOKEN"
-
-# Get document history
-curl -X GET http://localhost:8080/docs/history \
-  -H "Authorization: Bearer $TOKEN"
+# Configure your environment
+ENV=production
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_SERVICE_ACCOUNT_KEY=your-service-account-json
+STORAGE_TYPE=firebase  # or 'local' for development
+PORT=8080
 ```
 
-## 📁 Project Structure
+### Production Considerations
 
-```
-smartdoc-ai/
-├── openapi.yaml              # OpenAPI 3.0 specification
-├── oapi-codegen.yaml         # Code generation config
-├── go.mod                    # Go module file
-├── env.example               # Environment variables template
-├── README.md                 # This file
-├── api/
-│   └── generated.go          # Generated Go types and handlers
-├── cmd/
-│   └── server/
-│       ├── main.go           # Server entry point
-│       └── server.go         # Handler implementations
-└── internal/
-    ├── auth/
-    │   └── firebase.go       # Firebase authentication
-    └── services/
-        ├── firebase.go       # Firebase initialization
-        ├── storage.go        # Document storage service
-        ├── ocr.go           # OCR processing service
-        └── summary.go       # AI summary service
-```
-
-## 🔧 Configuration Options
-
-### OCR Services
-
-The system supports multiple OCR providers:
-
-1. **Google Vision API** (Recommended): Set `GOOGLE_APPLICATION_CREDENTIALS` or use Firebase service account
-2. **OCR.space**: Set `OCR_SERVICE_URL` and `OCR_API_KEY`
-3. **Mock OCR**: Fallback when no real service is configured
-
-### AI Summary Services
-
-The system supports multiple AI providers:
-
-1. **OpenAI GPT**: Set `AI_SERVICE_URL` and `AI_API_KEY`
-2. **Google Gemini**: Set `GEMINI_API_URL` and `GEMINI_API_KEY`
-3. **Mock Summary**: Fallback when no real service is configured
-
-### Storage Options
-
-1. **Firebase Storage** (Recommended): Set `FIREBASE_STORAGE_BUCKET`
-2. **Local Storage**: Set `STORAGE_TYPE=local` (for development)
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **Firebase Connection Error**:
-   - Verify `FIREBASE_PROJECT_ID` is correct
-   - Check `FIREBASE_SERVICE_ACCOUNT_KEY` format
-   - Ensure Firebase services are enabled
-
-2. **CORS Errors**:
-   - Update `CORS_ALLOWED_ORIGINS` in environment
-   - Check Flutter app origin matches
-
-3. **File Upload Issues**:
-   - Verify Firebase Storage bucket exists
-   - Check storage permissions
-   - Ensure file size is within limits
-
-4. **OCR/Summary Failures**:
-   - Check API keys are valid
-   - Verify service endpoints are accessible
-   - Review error logs for specific issues
-
-### Logs
-
-Enable debug logging by setting:
-```env
-LOG_LEVEL=debug
-```
+- ✅ Use HTTPS in production
+- ✅ Configure proper CORS settings
+- ✅ Set up monitoring and logging
+- ✅ Use environment-specific configurations
+- ✅ Implement rate limiting
+- ✅ Set up backup strategies
 
 ## 🤝 Contributing
 
+### Development Workflow
+
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes
-4. Update tests if applicable
-5. Submit a pull request
+4. Add tests for new functionality
+5. Run tests: `make test`
+6. Commit your changes: `git commit -m 'Add amazing feature'`
+7. Push to the branch: `git push origin feature/amazing-feature`
+8. Open a Pull Request
+
+### Code Standards
+
+- Follow Go coding standards
+- Write comprehensive tests
+- Update documentation
+- Use conventional commit messages
+- Ensure all tests pass
+
+### Testing Guidelines
+
+- Write unit tests for all new functionality
+- Maintain test coverage above 80%
+- Use descriptive test names
+- Mock external dependencies
+- Test both success and error cases
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
-For support and questions:
-- Create an issue on GitHub
-- Check the Swagger UI documentation
-- Review Firebase console for authentication issues
+- 📧 Email: support@smartdoc.ai
+- 📖 Documentation: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
+- 🐛 Issues: [GitHub Issues](https://github.com/your-username/back-smartia/issues)
 
----
+## 🙏 Acknowledgments
 
-**SmartDoc AI** - Making document processing intelligent and accessible. 
+- Firebase for authentication
+- Google Cloud Vision for OCR
+- OpenAI for AI summarization
+- Swagger for API documentation
+- OpenAPI Generator for client generation 

@@ -20,8 +20,12 @@ COPY . .
 RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 RUN oapi-codegen -config oapi-codegen.yaml openapi.yaml
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go
+# Force download of new dependencies after code generation
+RUN go mod download
+RUN go mod tidy
+
+# Build the application (compile the entire cmd/server package)
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
 
 # Final stage
 FROM alpine:latest

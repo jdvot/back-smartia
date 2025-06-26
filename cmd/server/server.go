@@ -1,29 +1,82 @@
 package main
 
 import (
-	"context"
+	// "context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
+	// "io"
 	"net/http"
-	"os"
-	"strconv"
-	"strings"
+	// "os"
+	// "strconv"
+	// "strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	// "github.com/gin-gonic/gin"
 
 	"smartdoc-ai/api"
 	"smartdoc-ai/internal/auth"
 	"smartdoc-ai/internal/services"
 )
 
+// Helper function to create pointers
+func Ptr[T any](v T) *T {
+	return &v
+}
+
+// Helper function to convert string to DocumentStatus
+func toDocumentStatus(s string) api.DocumentStatus {
+	switch s {
+	case "completed":
+		return api.DocumentStatusCompleted
+	case "failed":
+		return api.DocumentStatusFailed
+	case "processing":
+		return api.DocumentStatusProcessing
+	case "uploaded":
+		return api.DocumentStatusUploaded
+	default:
+		return api.DocumentStatusUploaded
+	}
+}
+
+// Helper function to convert string to DocumentOcrStatus
+func toDocumentOcrStatus(s string) api.DocumentOcrStatus {
+	switch s {
+	case "completed":
+		return api.DocumentOcrStatusCompleted
+	case "failed":
+		return api.DocumentOcrStatusFailed
+	case "pending":
+		return api.DocumentOcrStatusPending
+	case "processing":
+		return api.DocumentOcrStatusProcessing
+	default:
+		return api.DocumentOcrStatusPending
+	}
+}
+
+// Helper function to convert string to DocumentSummaryStatus
+func toDocumentSummaryStatus(s string) api.DocumentSummaryStatus {
+	switch s {
+	case "completed":
+		return api.DocumentSummaryStatusCompleted
+	case "failed":
+		return api.DocumentSummaryStatusFailed
+	case "pending":
+		return api.DocumentSummaryStatusPending
+	case "processing":
+		return api.DocumentSummaryStatusProcessing
+	default:
+		return api.DocumentSummaryStatusPending
+	}
+}
+
 // ServerImpl implements the generated ServerInterface
 type ServerImpl struct {
-	storageService  *services.StorageService
-	ocrService      *services.OCRService
-	summaryService  *services.SummaryService
+	StorageService  *services.StorageService
+	OCRService      *services.OCRService
+	SummaryService  *services.SummaryService
 }
 
 // Helper to extract userID from context
@@ -53,7 +106,7 @@ func (s *ServerImpl) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	// Upload document using storage service
-	doc, err := s.storageService.UploadDocument(r.Context(), userID, header)
+	doc, err := s.StorageService.UploadDocument(r.Context(), userID, header)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to upload document: %v", err), http.StatusInternalServerError)
 		return
@@ -67,16 +120,16 @@ func (s *ServerImpl) UploadDocument(w http.ResponseWriter, r *http.Request) {
 		MimeType:      doc.MimeType,
 		UploadDate:    doc.UploadDate,
 		UserId:        doc.UserID,
-		Status:        doc.Status,
+		Status:        toDocumentStatus(doc.Status),
 		OcrText:       doc.OcrText,
 		Summary:       doc.Summary,
-		OcrStatus:     &doc.OcrStatus,
-		SummaryStatus: &doc.SummaryStatus,
+		OcrStatus:     Ptr(toDocumentOcrStatus(doc.OcrStatus)),
+		SummaryStatus: Ptr(toDocumentSummaryStatus(doc.SummaryStatus)),
 	}
 
 	resp := api.UploadResponse{
-		Success: api.Ptr(true),
-		Message: api.Ptr("Document uploaded successfully"),
+		Success: Ptr(true),
+		Message: Ptr("Document uploaded successfully"),
 		Data:    &apiDoc,
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -99,7 +152,7 @@ func (s *ServerImpl) TriggerOCR(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get document
-	doc, err := s.storageService.GetDocument(r.Context(), docId, userID)
+	doc, err := s.StorageService.GetDocument(r.Context(), docId, userID)
 	if err != nil {
 		http.Error(w, "Document not found", http.StatusNotFound)
 		return
@@ -108,25 +161,25 @@ func (s *ServerImpl) TriggerOCR(w http.ResponseWriter, r *http.Request) {
 	// Update status to processing
 	doc.OcrStatus = "processing"
 	doc.Status = "processing"
-	if err := s.storageService.UpdateDocument(r.Context(), doc); err != nil {
+	if err := s.StorageService.UpdateDocument(r.Context(), doc); err != nil {
 		http.Error(w, "Failed to update document status", http.StatusInternalServerError)
 		return
 	}
 
 	// Process OCR
-	fileReader, err := s.storageService.GetFileReader(r.Context(), doc)
+	fileReader, err := s.StorageService.GetFileReader(r.Context(), doc)
 	if err != nil {
 		http.Error(w, "Failed to read document file", http.StatusInternalServerError)
 		return
 	}
 	defer fileReader.Close()
 
-	ocrText, err := s.ocrService.ProcessOCR(r.Context(), fileReader)
+	ocrText, err := s.OCRService.ProcessOCR(r.Context(), fileReader)
 	if err != nil {
 		// Update status to failed
 		doc.OcrStatus = "failed"
 		doc.Status = "failed"
-		s.storageService.UpdateDocument(r.Context(), doc)
+		s.StorageService.UpdateDocument(r.Context(), doc)
 		
 		http.Error(w, fmt.Sprintf("OCR processing failed: %v", err), http.StatusInternalServerError)
 		return
@@ -141,18 +194,22 @@ func (s *ServerImpl) TriggerOCR(w http.ResponseWriter, r *http.Request) {
 		doc.Status = "uploaded"
 	}
 
-	if err := s.storageService.UpdateDocument(r.Context(), doc); err != nil {
+	if err := s.StorageService.UpdateDocument(r.Context(), doc); err != nil {
 		http.Error(w, "Failed to update document with OCR results", http.StatusInternalServerError)
 		return
 	}
 
 	resp := api.OCRResponse{
-		Success: api.Ptr(true),
-		Message: api.Ptr("OCR processing completed successfully"),
-		Data: api.OCRResponseData{
-			DocId:    doc.ID,
-			OcrText:  &ocrText,
-			Status:   doc.OcrStatus,
+		Success: Ptr(true),
+		Message: Ptr("OCR processing completed successfully"),
+		Data: &struct {
+			DocId   *string                    `json:"docId,omitempty"`
+			OcrText *string                    `json:"ocrText"`
+			Status  *api.OCRResponseDataStatus `json:"status,omitempty"`
+		}{
+			DocId:   Ptr(doc.ID),
+			OcrText: &ocrText,
+			Status:  Ptr(api.OCRResponseDataStatusCompleted),
 		},
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -175,7 +232,7 @@ func (s *ServerImpl) TriggerSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get document
-	doc, err := s.storageService.GetDocument(r.Context(), docId, userID)
+	doc, err := s.StorageService.GetDocument(r.Context(), docId, userID)
 	if err != nil {
 		http.Error(w, "Document not found", http.StatusNotFound)
 		return
@@ -190,18 +247,18 @@ func (s *ServerImpl) TriggerSummary(w http.ResponseWriter, r *http.Request) {
 	// Update status to processing
 	doc.SummaryStatus = "processing"
 	doc.Status = "processing"
-	if err := s.storageService.UpdateDocument(r.Context(), doc); err != nil {
+	if err := s.StorageService.UpdateDocument(r.Context(), doc); err != nil {
 		http.Error(w, "Failed to update document status", http.StatusInternalServerError)
 		return
 	}
 
 	// Generate summary
-	summary, err := s.summaryService.GenerateSummary(r.Context(), *doc.OcrText)
+	summary, err := s.SummaryService.GenerateSummary(r.Context(), *doc.OcrText)
 	if err != nil {
 		// Update status to failed
 		doc.SummaryStatus = "failed"
 		doc.Status = "failed"
-		s.storageService.UpdateDocument(r.Context(), doc)
+		s.StorageService.UpdateDocument(r.Context(), doc)
 		
 		http.Error(w, fmt.Sprintf("Summary generation failed: %v", err), http.StatusInternalServerError)
 		return
@@ -216,18 +273,22 @@ func (s *ServerImpl) TriggerSummary(w http.ResponseWriter, r *http.Request) {
 		doc.Status = "uploaded"
 	}
 
-	if err := s.storageService.UpdateDocument(r.Context(), doc); err != nil {
+	if err := s.StorageService.UpdateDocument(r.Context(), doc); err != nil {
 		http.Error(w, "Failed to update document with summary results", http.StatusInternalServerError)
 		return
 	}
 
 	resp := api.SummaryResponse{
-		Success: api.Ptr(true),
-		Message: api.Ptr("Summary generation completed successfully"),
-		Data: api.SummaryResponseData{
-			DocId:   doc.ID,
+		Success: Ptr(true),
+		Message: Ptr("Summary generation completed successfully"),
+		Data: &struct {
+			DocId   *string                        `json:"docId,omitempty"`
+			Status  *api.SummaryResponseDataStatus `json:"status,omitempty"`
+			Summary *string                        `json:"summary"`
+		}{
+			DocId:   Ptr(doc.ID),
 			Summary: &summary,
-			Status:  doc.SummaryStatus,
+			Status:  Ptr(api.Completed),
 		},
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -248,7 +309,7 @@ func (s *ServerImpl) GetDocumentHistory(w http.ResponseWriter, r *http.Request) 
 	page := 1
 
 	// Get documents
-	documents, err := s.storageService.ListDocuments(r.Context(), userID, limit)
+	documents, err := s.StorageService.ListDocuments(r.Context(), userID, limit)
 	if err != nil {
 		http.Error(w, "Failed to retrieve document history", http.StatusInternalServerError)
 		return
@@ -264,25 +325,38 @@ func (s *ServerImpl) GetDocumentHistory(w http.ResponseWriter, r *http.Request) 
 			MimeType:      doc.MimeType,
 			UploadDate:    doc.UploadDate,
 			UserId:        doc.UserID,
-			Status:        doc.Status,
+			Status:        toDocumentStatus(doc.Status),
 			OcrText:       doc.OcrText,
 			Summary:       doc.Summary,
-			OcrStatus:     doc.OcrStatus,
-			SummaryStatus: doc.SummaryStatus,
+			OcrStatus:     Ptr(toDocumentOcrStatus(doc.OcrStatus)),
+			SummaryStatus: Ptr(toDocumentSummaryStatus(doc.SummaryStatus)),
 		}
 		apiDocs = append(apiDocs, apiDoc)
 	}
 
 	resp := api.DocumentHistoryResponse{
-		Success: api.Ptr(true),
-		Message: api.Ptr("Document history retrieved successfully"),
-		Data: api.DocumentHistoryResponseData{
-			Documents: apiDocs,
-			Pagination: api.Pagination{
-				Page:       page,
-				Limit:      limit,
-				Total:      len(apiDocs),
-				TotalPages: 1, // Simplified for now
+		Success: Ptr(true),
+		Message: Ptr("Document history retrieved successfully"),
+		Data: &struct {
+			Documents  *[]api.Document `json:"documents,omitempty"`
+			Pagination *struct {
+				Limit      *int `json:"limit,omitempty"`
+				Page       *int `json:"page,omitempty"`
+				Total      *int `json:"total,omitempty"`
+				TotalPages *int `json:"totalPages,omitempty"`
+			} `json:"pagination,omitempty"`
+		}{
+			Documents: &apiDocs,
+			Pagination: &struct {
+				Limit      *int `json:"limit,omitempty"`
+				Page       *int `json:"page,omitempty"`
+				Total      *int `json:"total,omitempty"`
+				TotalPages *int `json:"totalPages,omitempty"`
+			}{
+				Page:       Ptr(page),
+				Limit:      Ptr(limit),
+				Total:      Ptr(len(apiDocs)),
+				TotalPages: Ptr(1), // Simplified for now
 			},
 		},
 	}
@@ -306,7 +380,7 @@ func (s *ServerImpl) GetDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get document
-	doc, err := s.storageService.GetDocument(r.Context(), docId, userID)
+	doc, err := s.StorageService.GetDocument(r.Context(), docId, userID)
 	if err != nil {
 		http.Error(w, "Document not found", http.StatusNotFound)
 		return
@@ -320,17 +394,17 @@ func (s *ServerImpl) GetDocument(w http.ResponseWriter, r *http.Request) {
 		MimeType:      doc.MimeType,
 		UploadDate:    doc.UploadDate,
 		UserId:        doc.UserID,
-		Status:        doc.Status,
+		Status:        toDocumentStatus(doc.Status),
 		OcrText:       doc.OcrText,
 		Summary:       doc.Summary,
-		OcrStatus:     doc.OcrStatus,
-		SummaryStatus: doc.SummaryStatus,
+		OcrStatus:     Ptr(toDocumentOcrStatus(doc.OcrStatus)),
+		SummaryStatus: Ptr(toDocumentSummaryStatus(doc.SummaryStatus)),
 	}
 
 	resp := api.DocumentResponse{
-		Success: api.Ptr(true),
-		Message: api.Ptr("Document details retrieved successfully"),
-		Data:    apiDoc,
+		Success: Ptr(true),
+		Message: Ptr("Document details retrieved successfully"),
+		Data:    &apiDoc,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -352,7 +426,7 @@ func (s *ServerImpl) DeleteDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete document
-	err = s.storageService.DeleteDocument(r.Context(), docId, userID)
+	err = s.StorageService.DeleteDocument(r.Context(), docId, userID)
 	if err != nil {
 		http.Error(w, "Document not found", http.StatusNotFound)
 		return

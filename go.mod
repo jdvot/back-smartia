@@ -13,8 +13,10 @@ require (
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
+	github.com/swaggo/http-swagger v1.3.4
 	google.golang.org/api v0.126.0
 	google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98
+	github.com/go-chi/chi/v5 v5.0.10
 )
 
 require (

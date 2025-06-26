@@ -1,0 +1,32 @@
+FROM golang:1.22-alpine
+
+# Install git and ca-certificates
+RUN apk add --no-cache git ca-certificates
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Install oapi-codegen
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+
+# Generate code from OpenAPI spec
+RUN oapi-codegen -config oapi-codegen.yaml openapi.yaml
+
+# Download dependencies again after code generation
+RUN go mod download
+RUN go mod tidy
+
+# Expose port
+EXPOSE 8080
+
+# Default command (can be overridden)
+CMD ["go", "run", "./cmd/server"] 
