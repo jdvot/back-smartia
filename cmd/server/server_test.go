@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"smartdoc-ai/api"
 	"smartdoc-ai/internal/auth"
 	"smartdoc-ai/internal/services"
 )
