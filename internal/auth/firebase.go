@@ -70,6 +70,9 @@ func Middleware(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
+			// In development mode, if no valid token, continue without authentication
+			next.ServeHTTP(w, r)
+			return
 		}
 		if AuthClient == nil {
 			http.Error(w, "Authentication service not available", http.StatusInternalServerError)
