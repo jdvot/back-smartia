@@ -13,12 +13,17 @@ import (
 	"google.golang.org/api/option"
 )
 
-var (
-	FirebaseApp    *firebase.App
-	FirebaseAuth   *auth.Client
-	FirestoreClient *firestore.Client
-	StorageClient   *storage.Client
-)
+// FirebaseApp holds the Firebase application instance.
+var FirebaseApp *firebase.App
+
+// FirebaseAuth holds the Firebase Auth client instance.
+var FirebaseAuth *auth.Client
+
+// FirestoreClient holds the Firestore client instance.
+var FirestoreClient *firestore.Client
+
+// StorageClient holds the Firebase Storage client instance.
+var StorageClient *storage.Client
 
 // InitFirebase initializes all Firebase services (Auth, Firestore, Storage)
 func InitFirebase() error {

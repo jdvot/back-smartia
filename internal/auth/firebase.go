@@ -15,10 +15,11 @@ import (
 	"google.golang.org/api/option"
 )
 
-var (
-	FirebaseApp *firebase.App
-	AuthClient  *auth.Client
-)
+// FirebaseApp holds the Firebase application instance.
+var FirebaseApp *firebase.App
+
+// AuthClient holds the Firebase Auth client instance.
+var AuthClient *auth.Client
 
 // userIDKeyType est un type pour la clé de contexte utilisateur.
 type userIDKeyType struct{}
@@ -55,8 +56,8 @@ func InitializeFirebase() error {
 	return nil
 }
 
-// AuthMiddleware validates Firebase ID tokens
-func AuthMiddleware(next http.Handler) http.Handler {
+// Middleware validates Firebase ID tokens
+func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" || strings.HasPrefix(r.URL.Path, "/swagger/") {
 			next.ServeHTTP(w, r)

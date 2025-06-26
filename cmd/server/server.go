@@ -18,7 +18,7 @@ import (
 	"smartdoc-ai/internal/services"
 )
 
-// Ptr retourne un pointeur vers la valeur passée en argument.
+// Ptr returns a pointer to the given value.
 func Ptr[T any](v T) *T {
 	return &v
 }

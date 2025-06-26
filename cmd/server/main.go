@@ -109,7 +109,7 @@ func createServer() *http.Server {
 	))
 
 	// Add authentication middleware
-	finalHandler := auth.AuthMiddleware(mux)
+	finalHandler := auth.Middleware(mux)
 
 	// Get port from environment
 	port := os.Getenv("PORT")

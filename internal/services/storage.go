@@ -14,10 +14,11 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-const (
-	DocumentsCollection = "documents"
-	StorageBucket       = "smartdoc-uploads" // Will be overridden by env var
-)
+// DocumentsCollection is the Firestore collection name for documents.
+const DocumentsCollection = "documents"
+
+// StorageBucket is the default Firebase Storage bucket name.
+const StorageBucket = "smartdoc-uploads" // Will be overridden by env var
 
 // Document represents a document in Firestore
 type Document struct {

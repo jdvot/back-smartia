@@ -18,7 +18,7 @@ func TestValidateTestToken(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "Valid test token",
+			name:     "Valid token",
 			token:    createTestToken("test-user-123", time.Now().Add(time.Hour).Unix()),
 			expected: "test-user-123",
 		},
@@ -28,8 +28,13 @@ func TestValidateTestToken(t *testing.T) {
 			expected: "",
 		},
 		{
+			name:     "Token without user_id",
+			token:    createTestTokenWithoutUserID(time.Now().Add(time.Hour).Unix()),
+			expected: "",
+		},
+		{
 			name:     "Invalid base64",
-			token:    "invalid-token",
+			token:    "invalid-base64!@#",
 			expected: "",
 		},
 		{
@@ -38,13 +43,13 @@ func TestValidateTestToken(t *testing.T) {
 			expected: "",
 		},
 		{
-			name:     "Missing user_id",
-			token:    createTestTokenWithoutUserID(time.Now().Add(time.Hour).Unix()),
+			name:     "No token",
+			token:    "",
 			expected: "",
 		},
 		{
-			name:     "Empty token",
-			token:    "",
+			name:     "Token without Bearer prefix",
+			token:    "not-bearer-token",
 			expected: "",
 		},
 	}
@@ -64,7 +69,7 @@ func TestValidateTestToken(t *testing.T) {
 	}
 }
 
-func TestAuthMiddleware_DevelopmentMode(t *testing.T) {
+func TestMiddleware_DevelopmentMode(t *testing.T) {
 	// Set development environment
 	os.Setenv("ENV", "development")
 	os.Setenv("STORAGE_TYPE", "local")
@@ -85,7 +90,7 @@ func TestAuthMiddleware_DevelopmentMode(t *testing.T) {
 	})
 
 	// Create middleware
-	middleware := AuthMiddleware(testHandler)
+	middleware := Middleware(testHandler)
 
 	tests := []struct {
 		name           string
@@ -134,7 +139,7 @@ func TestAuthMiddleware_DevelopmentMode(t *testing.T) {
 	}
 }
 
-func TestAuthMiddleware_HealthEndpoint(t *testing.T) {
+func TestMiddleware_HealthEndpoint(t *testing.T) {
 	// Create a test handler
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := w.Write([]byte("OK")); err != nil {
@@ -144,7 +149,7 @@ func TestAuthMiddleware_HealthEndpoint(t *testing.T) {
 	})
 
 	// Create middleware
-	middleware := AuthMiddleware(testHandler)
+	middleware := Middleware(testHandler)
 
 	// Test health endpoint (should bypass auth)
 	req := httptest.NewRequest("GET", "/health", nil)
@@ -160,7 +165,7 @@ func TestAuthMiddleware_HealthEndpoint(t *testing.T) {
 	}
 }
 
-func TestAuthMiddleware_SwaggerEndpoint(t *testing.T) {
+func TestMiddleware_SwaggerEndpoint(t *testing.T) {
 	// Create a test handler
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := w.Write([]byte("Swagger")); err != nil {
@@ -170,7 +175,7 @@ func TestAuthMiddleware_SwaggerEndpoint(t *testing.T) {
 	})
 
 	// Create middleware
-	middleware := AuthMiddleware(testHandler)
+	middleware := Middleware(testHandler)
 
 	// Test swagger endpoint (should bypass auth)
 	req := httptest.NewRequest("GET", "/swagger/index.html", nil)
