@@ -2,7 +2,6 @@ package main
 
 import (
 	// "context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	// "io"
@@ -10,7 +9,7 @@ import (
 	// "os"
 	// "strconv"
 	// "strings"
-	"time"
+	// "time"
 
 	// "github.com/gin-gonic/gin"
 
@@ -19,7 +18,7 @@ import (
 	"smartdoc-ai/internal/services"
 )
 
-// Helper function to create pointers
+// Ptr retourne un pointeur vers la valeur passée en argument.
 func Ptr[T any](v T) *T {
 	return &v
 }
@@ -72,7 +71,7 @@ func toDocumentSummaryStatus(s string) api.DocumentSummaryStatus {
 	}
 }
 
-// ServerImpl implements the generated ServerInterface
+// ServerImpl implémente l'interface ServerInterface générée par oapi-codegen.
 type ServerImpl struct {
 	StorageService  *services.StorageService
 	OCRService      *services.OCRService
@@ -84,7 +83,7 @@ func getUserID(r *http.Request) (string, error) {
 	return auth.GetUserIDFromContext(r.Context())
 }
 
-// UploadDocument handles document upload
+// UploadDocument gère l'upload d'un document.
 func (s *ServerImpl) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r)
 	if err != nil {
@@ -134,10 +133,12 @@ func (s *ServerImpl) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		fmt.Printf("json.Encode error: %v\n", err)
+	}
 }
 
-// TriggerOCR handles OCR processing
+// TriggerOCR déclenche le traitement OCR sur un document.
 func (s *ServerImpl) TriggerOCR(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r)
 	if err != nil {
@@ -145,14 +146,14 @@ func (s *ServerImpl) TriggerOCR(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docId := r.URL.Query().Get("docId")
-	if docId == "" {
+	docID := r.PathValue("docId")
+	if docID == "" {
 		http.Error(w, "docId is required", http.StatusBadRequest)
 		return
 	}
 
 	// Get document
-	doc, err := s.StorageService.GetDocument(r.Context(), docId, userID)
+	doc, err := s.StorageService.GetDocument(r.Context(), docID, userID)
 	if err != nil {
 		http.Error(w, "Document not found", http.StatusNotFound)
 		return
@@ -162,6 +163,7 @@ func (s *ServerImpl) TriggerOCR(w http.ResponseWriter, r *http.Request) {
 	doc.OcrStatus = "processing"
 	doc.Status = "processing"
 	if err := s.StorageService.UpdateDocument(r.Context(), doc); err != nil {
+		fmt.Printf("UpdateDocument error: %v\n", err)
 		http.Error(w, "Failed to update document status", http.StatusInternalServerError)
 		return
 	}
@@ -195,6 +197,7 @@ func (s *ServerImpl) TriggerOCR(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.StorageService.UpdateDocument(r.Context(), doc); err != nil {
+		fmt.Printf("UpdateDocument error: %v\n", err)
 		http.Error(w, "Failed to update document with OCR results", http.StatusInternalServerError)
 		return
 	}
@@ -214,10 +217,12 @@ func (s *ServerImpl) TriggerOCR(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		fmt.Printf("json.Encode error: %v\n", err)
+	}
 }
 
-// TriggerSummary handles summary generation
+// TriggerSummary déclenche la génération de résumé sur un document.
 func (s *ServerImpl) TriggerSummary(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r)
 	if err != nil {
@@ -225,14 +230,14 @@ func (s *ServerImpl) TriggerSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docId := r.URL.Query().Get("docId")
-	if docId == "" {
+	docID := r.PathValue("docId")
+	if docID == "" {
 		http.Error(w, "docId is required", http.StatusBadRequest)
 		return
 	}
 
 	// Get document
-	doc, err := s.StorageService.GetDocument(r.Context(), docId, userID)
+	doc, err := s.StorageService.GetDocument(r.Context(), docID, userID)
 	if err != nil {
 		http.Error(w, "Document not found", http.StatusNotFound)
 		return
@@ -248,6 +253,7 @@ func (s *ServerImpl) TriggerSummary(w http.ResponseWriter, r *http.Request) {
 	doc.SummaryStatus = "processing"
 	doc.Status = "processing"
 	if err := s.StorageService.UpdateDocument(r.Context(), doc); err != nil {
+		fmt.Printf("UpdateDocument error: %v\n", err)
 		http.Error(w, "Failed to update document status", http.StatusInternalServerError)
 		return
 	}
@@ -274,6 +280,7 @@ func (s *ServerImpl) TriggerSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.StorageService.UpdateDocument(r.Context(), doc); err != nil {
+		fmt.Printf("UpdateDocument error: %v\n", err)
 		http.Error(w, "Failed to update document with summary results", http.StatusInternalServerError)
 		return
 	}
@@ -293,10 +300,12 @@ func (s *ServerImpl) TriggerSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		fmt.Printf("json.Encode error: %v\n", err)
+	}
 }
 
-// GetDocumentHistory handles document history retrieval
+// GetDocumentHistory retourne l'historique des documents de l'utilisateur authentifié.
 func (s *ServerImpl) GetDocumentHistory(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r)
 	if err != nil {
@@ -362,10 +371,12 @@ func (s *ServerImpl) GetDocumentHistory(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		fmt.Printf("json.Encode error: %v\n", err)
+	}
 }
 
-// GetDocument handles single document retrieval
+// GetDocument retourne les détails d'un document.
 func (s *ServerImpl) GetDocument(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r)
 	if err != nil {
@@ -373,14 +384,14 @@ func (s *ServerImpl) GetDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docId := r.URL.Query().Get("docId")
-	if docId == "" {
+	docID := r.PathValue("docId")
+	if docID == "" {
 		http.Error(w, "docId is required", http.StatusBadRequest)
 		return
 	}
 
 	// Get document
-	doc, err := s.StorageService.GetDocument(r.Context(), docId, userID)
+	doc, err := s.StorageService.GetDocument(r.Context(), docID, userID)
 	if err != nil {
 		http.Error(w, "Document not found", http.StatusNotFound)
 		return
@@ -408,10 +419,12 @@ func (s *ServerImpl) GetDocument(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		fmt.Printf("json.Encode error: %v\n", err)
+	}
 }
 
-// DeleteDocument handles document deletion
+// DeleteDocument supprime un document.
 func (s *ServerImpl) DeleteDocument(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserID(r)
 	if err != nil {
@@ -419,65 +432,18 @@ func (s *ServerImpl) DeleteDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docId := r.URL.Query().Get("docId")
-	if docId == "" {
+	docID := r.PathValue("docId")
+	if docID == "" {
 		http.Error(w, "docId is required", http.StatusBadRequest)
 		return
 	}
 
 	// Delete document
-	err = s.StorageService.DeleteDocument(r.Context(), docId, userID)
+	err = s.StorageService.DeleteDocument(r.Context(), docID, userID)
 	if err != nil {
 		http.Error(w, "Document not found", http.StatusNotFound)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// addTestTokenEndpoint adds a test token endpoint for development
-func addTestTokenEndpoint(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.Path == "/auth/test-token" {
-			handleTestToken(w, r)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-// handleTestToken generates a test token for development
-func handleTestToken(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		UserID string `json:"user_id"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if req.UserID == "" {
-		http.Error(w, "user_id is required", http.StatusBadRequest)
-		return
-	}
-
-	// Create a simple test token (not for production use)
-	token := map[string]interface{}{
-		"user_id": req.UserID,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
-		"iat":     time.Now().Unix(),
-		"iss":     "test-issuer",
-		"aud":     "test-audience",
-	}
-
-	// Encode as JWT-like string (simplified for testing)
-	tokenBytes, _ := json.Marshal(token)
-	tokenString := base64.StdEncoding.EncodeToString(tokenBytes)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"token": tokenString,
-		"user_id": req.UserID,
-	})
 } 

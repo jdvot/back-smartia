@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"cloud.google.com/go/vision/apiv1"
-	visionpb "google.golang.org/genproto/googleapis/cloud/vision/v1"
+	"cloud.google.com/go/vision/v2/apiv1/visionpb"
+	vision "cloud.google.com/go/vision/v2/apiv1"
 )
 
 // OCRService handles OCR processing
@@ -68,20 +68,34 @@ func (s *OCRService) processWithGoogleVision(ctx context.Context, fileReader io.
 		Content: imageData,
 	}
 
+	// Create text detection request
+	request := &visionpb.BatchAnnotateImagesRequest{
+		Requests: []*visionpb.AnnotateImageRequest{
+			{
+				Image: image,
+				Features: []*visionpb.Feature{
+					{
+						Type: visionpb.Feature_TEXT_DETECTION,
+					},
+				},
+			},
+		},
+	}
+
 	// Perform text detection
-	resp, err := s.visionClient.DetectTexts(ctx, image, nil, 10)
+	resp, err := s.visionClient.BatchAnnotateImages(ctx, request)
 	if err != nil {
 		return "", fmt.Errorf("failed to detect text: %w", err)
 	}
 
-	if len(resp) == 0 {
+	if len(resp.Responses) == 0 || len(resp.Responses[0].TextAnnotations) == 0 {
 		return "", fmt.Errorf("no text detected")
 	}
 
 	// Extract text from all detected text blocks
 	var texts []string
-	for _, text := range resp {
-		texts = append(texts, text.Description)
+	for _, annotation := range resp.Responses[0].TextAnnotations {
+		texts = append(texts, annotation.Description)
 	}
 
 	return strings.Join(texts, "\n"), nil

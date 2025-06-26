@@ -20,9 +20,11 @@ var (
 	AuthClient  *auth.Client
 )
 
-const (
-	UserIDKey = "userID"
-)
+// userIDKeyType est un type pour la clé de contexte utilisateur.
+type userIDKeyType struct{}
+
+// UserIDKey est la clé typée pour stocker l'ID utilisateur dans le contexte.
+var UserIDKey = userIDKeyType{}
 
 // InitializeFirebase initializes Firebase Admin SDK
 func InitializeFirebase() error {

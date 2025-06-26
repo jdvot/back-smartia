@@ -116,7 +116,10 @@ func (s *StorageService) UploadDocument(ctx context.Context, userID string, file
 	_, err = s.firestore.Collection(DocumentsCollection).Doc(docID).Set(ctx, doc)
 	if err != nil {
 		// Clean up storage if Firestore fails
-		obj.Delete(ctx)
+		if deleteErr := obj.Delete(ctx); deleteErr != nil {
+			// Log the delete error but return the original error
+			fmt.Printf("Failed to delete object after Firestore error: %v", deleteErr)
+		}
 		return nil, fmt.Errorf("failed to save document metadata: %w", err)
 	}
 

@@ -78,7 +78,10 @@ func TestAuthMiddleware_DevelopmentMode(t *testing.T) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.Write([]byte("User: " + userID))
+		if _, err := w.Write([]byte("User: " + userID)); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// Create middleware
@@ -134,7 +137,10 @@ func TestAuthMiddleware_DevelopmentMode(t *testing.T) {
 func TestAuthMiddleware_HealthEndpoint(t *testing.T) {
 	// Create a test handler
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// Create middleware
@@ -157,7 +163,10 @@ func TestAuthMiddleware_HealthEndpoint(t *testing.T) {
 func TestAuthMiddleware_SwaggerEndpoint(t *testing.T) {
 	// Create a test handler
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Swagger"))
+		if _, err := w.Write([]byte("Swagger")); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// Create middleware

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -94,7 +95,9 @@ func createServer() *http.Server {
 	// Add health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			fmt.Printf("health handler write error: %v\n", err)
+		}
 	})
 
 	// Add Swagger documentation endpoint
