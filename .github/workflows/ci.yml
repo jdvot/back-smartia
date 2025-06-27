@@ -155,7 +155,7 @@ jobs:
         tar -czf ../../flutter-client.tar.gz .
 
     - name: Upload Flutter client artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: flutter-api-client
         path: flutter-client.tar.gz
