@@ -65,13 +65,9 @@ func Middleware(next http.Handler) http.Handler {
 		}
 		if os.Getenv("ENV") == "development" && os.Getenv("STORAGE_TYPE") == "local" {
 			userID := validateTestToken(r)
-			if userID != "" {
-				ctx := context.WithValue(r.Context(), UserIDKey, userID)
-				next.ServeHTTP(w, r.WithContext(ctx))
-				return
-			}
-			// In development mode, if no valid token, continue without authentication
-			next.ServeHTTP(w, r)
+			// In development mode, always set a user ID in context (empty string if no valid token)
+			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 		if AuthClient == nil {
@@ -134,4 +130,4 @@ func GetUserIDFromContext(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("user ID not found in context")
 	}
 	return userID, nil
-} 
+}
